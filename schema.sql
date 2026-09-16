@@ -7,7 +7,7 @@ create table public.reservas (
   servicio text not null default '',
   fecha text not null,             -- formato YYYY-MM-DD
   hora text not null,              -- formato HH:MM
-  estado text not null default 'pendiente', -- 'pendiente' | 'cancelada'
+  estado text not null default 'pendiente', -- 'pendiente' | 'confirmada' | 'cancelada'
   notify text not null default '', -- correo del dueño (aviso al reservarse)
   creado_en timestamptz not null default now()
 );
@@ -20,9 +20,14 @@ create policy "ver_reservas" on public.reservas for select using (true);
 -- la página puede registrar una reserva con el toque
 create policy "crear_reservas" on public.reservas for insert with check (true);
 
+-- el dueño confirma o libera citas desde el panel (contraseña en la hoja, fila "panel")
+create policy "actualizar_reservas" on public.reservas for update using (true);
+
 -- para proyectos ya existentes: solo agrega la columna del aviso
 -- alter table public.reservas add column if not exists notify text not null default '';
 
 -- Uso diario del dueño:
---   cancelar:  update public.reservas set estado='cancelada' where id = <id>;
---   ver todas: select * from public.reservas order by fecha, hora;
+--   confirmar:  update public.reservas set estado='confirmada' where id = <id>;
+--   cancelar:   update public.reservas set estado='cancelada' where id = <id>;
+--   liberar:    estado='cancelada' hace que el horario vuelva a aparecer libre
+--   ver todas:  select * from public.reservas order by fecha, hora;

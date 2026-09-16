@@ -134,6 +134,7 @@
   <div>
     <b>Barba Maestra</b>
     <p>Demo "Sucursal digital 24/7" · adapta a barberías, salones, spas y consultorios.</p>
+    <a class="foot-owner" id="ownerLink" href="#panel" hidden>Panel del dueño · citas</a>
   </div>
   <p class="foot-note">Página de muestra: servicios, precios, reseñas y cita se manejan desde Google Sheets + WhatsApp.</p>
 </footer>
@@ -150,6 +151,34 @@
     <input id="chatTxt" type="text" placeholder="Ej. ¿a qué hora cierran?" autocomplete="off" />
     <button class="btn btn-solid" type="submit">➤</button>
   </form>
+</div>
+
+<!-- ================= PANEL DEL DUEÑO ================= -->
+<div class="panel" id="panel" hidden>
+  <div class="panel-card">
+    <div class="panel-head">
+      <b>Panel del dueño</b>
+      <small>Confirma o libera citas · no afecta lo que ven los clientes</small>
+      <button class="panel-x" id="panelX" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="panel-lock" id="panelLock">
+      <p>Escribe tu contraseña para ver las citas.</p>
+      <div class="panel-row">
+        <input id="panelPass" class="sel" type="password" placeholder="Contraseña" />
+        <button class="btn btn-solid" id="panelUnlock" type="button">Entrar</button>
+      </div>
+      <p class="panel-err" id="panelErr" hidden>Contraseña incorrecta — revisa la fila "panel" de tu hoja</p>
+    </div>
+    <div class="panel-main" id="panelMain" hidden>
+      <div class="panel-bar">
+        <button class="btn btn-ghost sm active" data-f="prox" type="button">Próximas</button>
+        <button class="btn btn-ghost sm" data-f="hoy" type="button">Hoy</button>
+        <button class="btn btn-ghost sm" data-f="todas" type="button">Todas</button>
+        <button class="btn btn-solid sm" id="panelRef" type="button">Actualizar</button>
+      </div>
+      <div class="panel-list" id="panelList"></div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>

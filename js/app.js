@@ -10,6 +10,7 @@
   let EMAILS = [];
   let AGENDA_MANUAL = false;
   let AGENDA_HOJA = false;
+  let PANEL_KEY = '';
 
   function abrirWhatsApp(msg) {
     const txt = encodeURIComponent(msg);
@@ -26,8 +27,11 @@
     EMAILS = ['email', 'email1', 'email2'].map((k) => String(cfg[k] || '').trim()).filter(Boolean);
     AGENDA_MANUAL = String(cfg.agenda || '').toLowerCase() === 'manual';
     AGENDA_HOJA = String(cfg.agenda || '').toLowerCase() === 'hoja';
+    PANEL_KEY = String(cfg.panel || '').trim();
     const f = $('#waFloat');
     if (f) f.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola! vi su página y quiero agendar.');
+    const ol = $('#ownerLink');
+    if (ol) ol.hidden = !(PANEL_KEY && supa);
   }
   const SHEET_URL = '';
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/1Wg9htlRxihL6kd05ryrunMsLE85raNl0D10301xRUho/export?format=csv';
@@ -472,6 +476,122 @@
   /* ---------------- arranque del hero ---------------- */
   const heroImg = $('.hero-img');
   if (document.documentElement.classList.contains('js')) setTimeout(() => heroImg.classList.add('on'), 150);
+
+  /* ---------------- panel del dueño ---------------- */
+  const panel = $('#panel');
+  const panelMain = $('#panelMain');
+  const panelList = $('#panelList');
+  let panelFiltro = 'prox';
+  let panelTimer = null;
+
+  const panelOk = () => sessionStorage.getItem('panel_ok') === PANEL_KEY;
+
+  function openPanel() {
+    panel.hidden = false;
+    const ok = panelOk();
+    $('#panelLock').hidden = ok;
+    panelMain.hidden = !ok;
+    $('#panelPass').value = '';
+    if (ok) { cargarPanel(); clearInterval(panelTimer); panelTimer = setInterval(cargarPanel, 30000); }
+  }
+  function closePanel() {
+    panel.hidden = true;
+    clearInterval(panelTimer);
+  }
+  $('#ownerLink').addEventListener('click', (e) => { e.preventDefault(); openPanel(); });
+  $('#panelX').addEventListener('click', closePanel);
+  if (panel) panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });
+
+  $('#panelUnlock').addEventListener('click', () => {
+    if (String($('#panelPass').value).trim() === PANEL_KEY) {
+      sessionStorage.setItem('panel_ok', PANEL_KEY);
+      $('#panelErr').hidden = true;
+      openPanel();
+    } else {
+      $('#panelErr').hidden = false;
+    }
+  });
+  if (document.documentElement.classList.contains('js')) setTimeout(() => { if (panelOk()) openPanel(); }, 300);
+
+  $$('.panel-bar [data-f]').forEach((b) => b.addEventListener('click', () => {
+    panelFiltro = b.dataset.f;
+    $$('.panel-bar [data-f]').forEach((x) => x.classList.toggle('active', x === b));
+    cargarPanel();
+  }));
+  $('#panelRef').addEventListener('click', cargarPanel);
+
+  function fmtDay(t) {
+    const p = String(t).split('-').map(Number);
+    const dt = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+    return dt.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+  }
+
+  async function cargarPanel() {
+    if (!supa || panel.hidden || panelMain.hidden) return;
+    panelList.innerHTML = '<p class="p-empty">Cargando citas…</p>';
+    const hoy = fmtFecha(new Date());
+    try {
+      const asc = panelFiltro !== 'todas';
+      const q = supa.from('reservas').select('*').order('fecha', { ascending: asc }).order('hora');
+      const { data, error } = await q;
+      if (error) { panelList.innerHTML = '<p class="p-empty">No se pudieron cargar las citas.</p>'; return; }
+      const rows = (data || []).filter((r) => {
+        if (panelFiltro === 'hoy') return r.fecha === hoy;
+        if (panelFiltro === 'prox') return r.fecha >= hoy && r.estado !== 'cancelada';
+        return true;
+      }).slice(0, panelFiltro === 'todas' ? 60 : 40);
+      if (!rows.length) { panelList.innerHTML = '<p class="p-empty">Sin citas por aquí.</p>'; return; }
+      let lastFecha = null;
+      rows.forEach((r) => {
+        if (r.fecha !== lastFecha) {
+          lastFecha = r.fecha;
+          const p = document.createElement('p');
+          p.className = 'p-date';
+          p.textContent = fmtDay(r.fecha);
+          panelList.appendChild(p);
+        }
+        const est = r.estado || 'pendiente';
+        const item = document.createElement('div');
+        item.className = 'p-item';
+        item._id = r.id;
+        item._fecha = r.fecha;
+        item._hora = r.hora;
+        const etiqueta = est === 'confirmada' ? 'Confirmada' : (est === 'cancelada' ? 'Cancelada' : 'Pendiente');
+        item.innerHTML =
+          '<span class="p-badge ' + est + '">' + etiqueta + '</span>' +
+          '<b>' + r.hora + '</b>' +
+          '<span>' + (r.servicio || 'Hora en agenda') + (r.nombre ? ' · ' + r.nombre : '') + '</span>' +
+          '<div class="p-actions">' +
+          '<button class="p-wa" data-act="wa" type="button">WhatsApp</button>' +
+          (est === 'cancelada'
+            ? '<button class="p-ok" data-act="confirmar" type="button">Reactivar</button>'
+            : '<button class="p-ok" data-act="confirmar" type="button">Confirmar</button><button class="p-no" data-act="cancelar" type="button">Liberar</button>') +
+          '</div>';
+        panelList.appendChild(item);
+      });
+    } catch (e) { panelList.innerHTML = '<p class="p-empty">Sin conexión con la base.</p>'; }
+  }
+
+  panelList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const rowEl = btn.closest('.p-item');
+    if (!rowEl || !supa) return;
+    const act = btn.dataset.act;
+    if (act === 'wa') {
+      const msg = 'Hola, sobre tu cita del ' + fmtDay(rowEl._fecha) + ' a las ' + rowEl._hora + ':';
+      window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+      return;
+    }
+    const estado = act === 'confirmar' ? 'confirmada' : 'cancelada';
+    try {
+      const { error } = await supa.from('reservas').update({ estado }).eq('id', rowEl._id);
+      if (error) { toast('No se pudo actualizar — inténtalo otra vez.'); return; }
+      toast(act === 'confirmar' ? 'Cita confirmada ✓' : 'Cita liberada — el horario vuelve a estar disponible');
+      cargarPanel();
+      renderSlots();
+    } catch (err) { toast('Sin conexión con la base.'); }
+  });
 
   window.__sucursalReady = true;
 })();
