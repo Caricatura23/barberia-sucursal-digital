@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Barba Maestra · Agenda, corta y llega con tu turno</title>
+<meta name="description" content="Barbería de autor. Elige tu servicio, agenda por WhatsApp y llega sin espera. Reseñas reales de Google y horario en vivo." />
+<meta name="theme-color" content="#16100b" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%23c9a35c'/><text x='12' y='17' font-size='13' font-weight='bold' text-anchor='middle' fill='%2316100b'>B</text></svg>" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+
+<a class="wa-float" id="waFloat" target="_blank" rel="noopener" href="https://wa.me/5215512345678?text=Hola!%20vi%20su%20p%C3%A1gina%20y%20quiero%20agendar.">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20Z"/></svg>
+</a>
+
+<nav class="nav">
+  <a class="nav-logo" href="#top"><span>B</span> Barba Maestra <small>barbería de autor</small></a>
+  <div class="nav-links">
+    <a href="#servicios">Servicios</a>
+    <a href="#cita">Agendar cita</a>
+    <a href="#resenas">Reseñas</a>
+    <a href="#cita" class="nav-cta">Mi turno ✂</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <img class="hero-img" src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1600&q=80&auto=format&fit=crop" alt="Interior de la barbería" fetchpriority="high" />
+  <div class="hero-shade"></div>
+  <div class="hero-in">
+    <p class="kicker">Barbería de autor · desde 2008</p>
+    <h1 class="hero-title">Tu turno, <br/>tu estilo, <span class="cyc" id="cyc">tu barbero.</span></h1>
+    <p class="hero-sub">Elige tu servicio, agenda por WhatsApp y llega sin esperar. Todo en tiempo real, directo desde nuestro local.</p>
+    <div class="hero-cta">
+      <a class="btn btn-solid" href="#cita">Agendar mi cita</a>
+      <a class="btn btn-ghost" href="#servicios">Ver servicios</a>
+    </div>
+  </div>
+  <p class="scroll-cue"><span></span> baja para entrar</p>
+</header>
+
+<!-- ================= SERVICIOS (VISTA VIVA DESDE SHEETS) ================= -->
+<section class="wrap section" id="servicios">
+  <div class="section-head">
+    <p class="kicker">Nuestra carta de servicios</p>
+    <h2>Elige, agrega y <em>agenda directo.</em></h2>
+    <p class="walk-sub">Precios y disponibilidad se actualizan solos desde nuestra hoja.</p>
+  </div>
+
+  <p class="banner" id="stateBanner" hidden></p>
+
+  <div class="menu reveal" id="menu"></div>
+</section>
+
+<!-- ================= AGENDA POR WHATSAPP ================= -->
+<section class="wrap section" id="cita">
+  <div class="section-head">
+    <p class="kicker">Agenda en vivo</p>
+    <h2>Confirma tu cita <em>en 15 segundos.</em></h2>
+    <p class="walk-sub">La enviamos por WhatsApp y te confirmamos al momento.</p>
+  </div>
+
+  <div class="bk-card reveal">
+    <div class="bk-grid">
+      <label>Servicio
+        <select id="bkService" class="sel"></select>
+      </label>
+      <label>Día
+        <input id="bkDay" class="sel" type="date" />
+      </label>
+      <label>Hora
+        <select id="bkHour" class="sel">
+          <option>09:00</option><option>10:00</option><option>11:00</option>
+          <option>12:00</option><option>13:00</option><option>16:00</option>
+          <option>17:00</option><option>18:00</option><option>19:00</option>
+          <option>20:00</option>
+        </select>
+      </label>
+      <label>Tu nombre
+        <input id="bkName" class="sel" type="text" placeholder="Cómo te llamas" />
+      </label>
+    </div>
+    <button class="btn btn-solid big" id="bkSend" type="button">Confirmar cita por WhatsApp</button>
+    <p class="bk-note">Te confirmamos en menos de 5 min en horario de atención. Sin pagos por adelantado.</p>
+  </div>
+</section>
+
+<!-- ================= RESEÑAS DE GOOGLE AUTOMÁTICAS ================= -->
+<section class="wrap section" id="resenas">
+  <div class="section-head">
+    <p class="kicker">Prueba social</p>
+    <h2>Lo que dicen <em>en Google.</em></h2>
+    <p class="resenas-badge" id="resenasBadge">★ — · reseñas</p>
+  </div>
+
+  <div class="review-grid reveal" id="reviewGrid"></div>
+
+  <p class="review-note">Estas reseñas se sincronizan solas desde Google — tu reputación siempre al día, sin escribirlas a mano.</p>
+</section>
+
+<!-- ================= CONTACTO / LOCAL ================= -->
+<section class="cta-final" id="visita">
+  <img class="cta-bg" src="https://images.unsplash.com/photo-1520342868574-5fa3804e551c?w=1600&q=80&auto=format&fit=crop" alt="Barbería" loading="lazy" />
+  <div class="cta-shade"></div>
+  <div class="cta-in wrap">
+    <p class="kicker">Te esperamos</p>
+    <h2>Tu lugar en la silla <em>te está llamando.</em></h2>
+    <p class="cta-text" id="contactInfo">LUN A SÁB · 9:00–21:00</p>
+    <a class="btn btn-solid big" href="#cita">Agendar ahora</a>
+  </div>
+</section>
+
+<footer class="foot">
+  <div>
+    <b>Barba Maestra</b>
+    <p>Demo "Sucursal digital 24/7" · adapta a barberías, salones, spas y consultorios.</p>
+  </div>
+  <p class="foot-note">Página de muestra: servicios, precios, reseñas y cita se manejan desde Google Sheets + WhatsApp.</p>
+</footer>
+
+<!-- ================= ASISTENTE (RESPONDE CON DATOS REALES) ================= -->
+<button class="cb-fab" id="cbFab" type="button" aria-label="Abrir chat">💬 El Peluco</button>
+<div class="chat" id="chat" hidden>
+  <div class="chat-head" id="chatHead">
+    <b>Peluco AI</b><small>Responde con datos reales del local</small>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-qs" id="chatQs"></div>
+  <form class="chat-in" id="chatIn">
+    <input id="chatTxt" type="text" placeholder="Ej. ¿a qué hora cierran?" autocomplete="off" />
+    <button class="btn btn-solid" type="submit">➤</button>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/app.js" defer></script>
+</body>
+</html>

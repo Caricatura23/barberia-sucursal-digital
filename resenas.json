@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Carlos M.",
+    "stars": 5,
+    "text": "El mejor corte de mi vida. Llegué, agendé por WhatsApp y en 10 minutos ya estaba en la silla. Cero espera.",
+    "date": "hace 2 días",
+    "img": ""
+  },
+  {
+    "name": "Diego R.",
+    "stars": 5,
+    "text": "La barba siempre perfecta. El rasurado con toalla caliente se volvió mi ritual de cada viernes.",
+    "date": "hace 5 días",
+    "img": ""
+  },
+  {
+    "name": "Emiliano T.",
+    "stars": 5,
+    "text": "Precios claros desde la página y el camuflaje de canas me salvó para una boda. Recomendadísimos.",
+    "date": "hace 1 semana",
+    "img": ""
+  },
+  {
+    "name": "Andrés L.",
+    "stars": 4,
+    "text": "Buen ambiente, música y el café gratis mientras esperas. Solo llegué 10 min temprano y me atendieron igual.",
+    "date": "hace 1 semana",
+    "img": ""
+  },
+  {
+    "name": "Jorge P.",
+    "stars": 5,
+    "text": "Llevo a mi hijo desde que empezó la escuela. Ellos sí saben cortar a los niños sin drama.",
+    "date": "hace 2 semanas",
+    "img": ""
+  },
+  {
+    "name": "Héctor V.",
+    "stars": 5,
+    "text": "El combo corte + barba es calidad total. Punto de referencia del barrio.",
+    "date": "hace 3 semanas",
+    "img": ""
+  }
+]

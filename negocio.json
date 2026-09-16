@@ -1,0 +1,77 @@
+{
+  "nombre": "Barba Maestra",
+  "claim": "Barbería de autor",
+  "horario": "Lunes a Sábado · 9:00 a 21:00",
+  "tel": "5215512345678",
+  "direccion": "Av. Morelos 210, Centro",
+  "estrellas": "4.9",
+  "reseñas_count": "128",
+  "showPrices": true,
+  "open": true,
+  "items": [
+    {
+      "name": "Corte clásico",
+      "tag": "Cortes",
+      "desc": "Corte a tijera y navaja · 40 min",
+      "price": 180,
+      "img": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Corte + barba",
+      "tag": "Paquetes",
+      "desc": "El combo completo · 60 min",
+      "price": 280,
+      "img": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Arreglo de barba",
+      "tag": "Barba",
+      "desc": "Perfilado con navaja y ceras · 25 min",
+      "price": 120,
+      "img": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Rasurado tradicional",
+      "tag": "Barba",
+      "desc": "Toalla caliente y navaja clásica · 30 min",
+      "price": 150,
+      "img": "https://images.unsplash.com/photo-1533167649158-6d508895b680?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Perfilado de cejas",
+      "tag": "Extras",
+      "desc": "Arreglo de cejas y patillas",
+      "price": 60,
+      "img": "https://images.unsplash.com/photo-1520342868574-5fa3804e551c?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Tinte y camuflaje",
+      "tag": "Tinte",
+      "desc": "Cubre canas al instante",
+      "price": 220,
+      "img": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Corte para niños",
+      "tag": "Especial",
+      "desc": "Para menores de 12 años",
+      "price": 150,
+      "img": "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    },
+    {
+      "name": "Tratamiento capilar",
+      "tag": "Tratamiento",
+      "desc": "Limpieza profunda con masaje · 45 min",
+      "price": 240,
+      "img": "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=900&q=80&auto=format&fit=crop",
+      "available": true
+    }
+  ]
+}

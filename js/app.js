@@ -1,0 +1,328 @@
+(function () {
+  'use strict';
+
+  const $ = (s, c) => (c || document).querySelector(s);
+  const $$ = (s, c) => Array.prototype.slice.call((c || document).querySelectorAll(s));
+  const money = (n) => '$' + Math.round(n).toLocaleString('es-MX');
+
+  const WA = '5215512345678';
+  const SHEET_URL = '';
+  const CSV_URL = '';
+  const REVIEWS_SHEET_URL = '';
+  const REFRESH_MS = 30000;
+
+  let DATA = null;
+  let RESENAS = [];
+
+  /* ---------------- helpers ---------------- */
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.hidden = false;
+    requestAnimationFrame(() => t.classList.add('show'));
+    clearTimeout(t._h);
+    t._h = setTimeout(() => { t.classList.remove('show'); setTimeout(() => { t.hidden = true; }, 350); }, 2600);
+  }
+
+  /* ---------------- hero: palabras rotando ---------------- */
+  const cyc = $('#cyc');
+  if (cyc) {
+    const list = ['tu barbero.', 'tu estilo.', 'tu momento.'];
+    const swapEl = (sp, arr, k) => {
+      sp.classList.remove('swap');
+      void sp.offsetWidth;
+      sp.textContent = arr[k % arr.length];
+      sp.classList.add('swap');
+      return k;
+    };
+    let k = 0;
+    setInterval(() => { k = swapEl(cyc, list, k + 1); }, 2600);
+  }
+
+  /* ---------------- reveal on scroll ---------------- */
+  const revealEls = $$('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => es.forEach((en) => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }), { threshold: 0.12 });
+    revealEls.forEach((el) => io.observe(el));
+  } else {
+    revealEls.forEach((el) => el.classList.add('in'));
+  }
+
+  /* ---------------- estado de banner ---------------- */
+  const banner = $('#stateBanner');
+  function stateBanner() {
+    if (!DATA) return;
+    const info = 'Horario: ' + (DATA.horario || 'Lunes a Sábado · 9:00 a 21:00');
+    banner.className = 'banner ' + (DATA.open === false ? 'bad' : 'ok');
+    banner.textContent = DATA.open === false ? 'Cerramos por hoy — agenda para mañana sin problema.' : 'Abiertos ahora · ' + info;
+    banner.hidden = false;
+  }
+
+  /* ---------------- render de servicios ---------------- */
+  const menuEl = $('#menu');
+  function renderMenu() {
+    const items = (DATA && DATA.items) || [];
+    menuEl.innerHTML = '';
+    items.forEach((m) => {
+      const off = m.available === false;
+      const it = document.createElement('article');
+      it.className = 'menu-item' + (off ? ' off' : '');
+      const priceHtml = (DATA.showPrices !== false) && m.price
+        ? '<span class="mi-price">' + money(m.price) + '</span>'
+        : '<span class="mi-price na">Pregunta precio</span>';
+      const btnHtml = off
+        ? '<span class="add-btn sold" style="cursor:default">Hoy no disponible</span>'
+        : '<button class="add-btn" type="button">Agendar este</button>';
+      it.innerHTML =
+        '<img class="mi-img" src="' + m.img + '" alt="' + m.name + '" loading="lazy" onerror="this.classList.add(\'noimg\')" />' +
+        '<div class="mi-body"><span class="mi-tag">' + (m.tag || '') + '</span><b class="mi-name">' + m.name + '</b>' +
+        '<p class="mi-desc">' + (m.desc || '') + '</p><div class="mi-foot">' + priceHtml + btnHtml + '</div></div>';
+      const btn = $('.add-btn', it);
+      if (btn) {
+        btn.addEventListener('click', () => pickService(m.name, btn));
+      }
+      menuEl.appendChild(it);
+    });
+  }
+
+  function pickService(name, btn) {
+    const sel = $('#bkService');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === name) { sel.value = name; break; }
+    }
+    $('#cita').scrollIntoView({ behavior: 'smooth' });
+    if (btn) { btn.textContent = '✓ Elegido'; btn.classList.add('added'); setTimeout(() => { btn.textContent = 'Agendar este'; btn.classList.remove('added'); }, 1200); }
+  }
+
+  /* ---------------- agenda por WhatsApp ---------------- */
+  function populateServices() {
+    const sel = $('#bkService');
+    const items = (DATA && DATA.items) || [];
+    sel.innerHTML = '<option disabled selected>Elige tu servicio…</option>' +
+      items.filter((i) => i.available !== false).map((i) => '<option value="' + i.name + '">' + i.name + ' · ' + (i.price ? money(i.price) : 'a consultar') + '</option>').join('');
+  }
+
+  const bkDay = $('#bkDay');
+  if (bkDay) {
+    const tm = new Date();
+    tm.setDate(tm.getDate() + 1);
+    bkDay.min = tm.toISOString().split('T')[0];
+  }
+
+  $('#bkSend').addEventListener('click', () => {
+    if (DATA && DATA.open === false) { toast('Cerramos por hoy — elige un día siguiente.'); return; }
+    const sv = $('#bkService').value;
+    const day = $('#bkDay').value;
+    const hour = $('#bkHour').value;
+    const name = $('#bkName').value.trim();
+    if (!sv) { toast('Primero elige tu servicio 🙂'); return; }
+    if (!day) { toast('Falta el día de tu cita'); return; }
+    const neg = (DATA && DATA.nombre) || 'Barba Maestra';
+    const msg = 'Hola, quiero agendar en ' + neg + ':\nServicio: ' + sv +
+      '\nDía: ' + day.split('-').reverse().join('/') +
+      '\nHora: ' + hour +
+      (name ? '\nNombre: ' + name : '') +
+      '\n¿Me confirman disponibilidad?';
+    window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    toast('Cita lista — confirma en WhatsApp');
+  });
+
+  /* ---------------- reseñas ---------------- */
+  const reviewGrid = $('#reviewGrid');
+  function stars(n) {
+    let s = '';
+    for (let i = 0; i < 5; i++) s += i < n ? '★' : '☆';
+    return s;
+  }
+  function renderReviews() {
+    reviewGrid.innerHTML = '';
+    RESENAS.slice(0, 6).forEach((r) => {
+      const el = document.createElement('div');
+      el.className = 'review-card';
+      const ini = (r.name || '?').trim().charAt(0).toUpperCase();
+      el.innerHTML =
+        '<div class="review-top"><span class="review-ava">' + ini + '</span>' +
+        '<span><b>' + (r.name || 'Cliente') + '</b><small>' + (r.date || '') + '</small></span></div>' +
+        '<div class="review-stars">' + stars(Math.min(5, Math.max(1, parseInt(r.stars, 10) || 5))) + '</div>' +
+        '<p>' + (r.text || '') + '</p>';
+      reviewGrid.appendChild(el);
+    });
+    const badge = $('#resenasBadge');
+    if (badge && (DATA && DATA.estrellas)) {
+      badge.textContent = '★ ' + DATA.estrellas + ' · ' + (DATA.reseñas_count || RESENAS.length) + ' reseñas en Google';
+    }
+  }
+
+  /* ---------------- datos: Sheets + respaldo ---------------- */
+  function parseCSV(text) {
+    const rows = [];
+    let cur = '', row = [], q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+        else cur += ch;
+      } else if (ch === '"') { q = true; }
+      else if (ch === ',') { row.push(cur.trim()); cur = ''; }
+      else if (ch === '\n' || ch === '\r') { row.push(cur.trim()); cur = ''; if (row.length) rows.push(row); row = []; }
+      else cur += ch;
+    }
+    if (cur !== '' || row.length) { row.push(cur.trim()); rows.push(row); }
+    return rows;
+  }
+  function itemsFromSheet(rows) {
+    const items = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r || !r[0]) continue;
+      const price = Number((r[3] || '').replace(/[^0-9.]/g, ''));
+      const av = String(r[5] || 'si').trim().toLowerCase();
+      items.push({
+        name: r[0], tag: r[1] || '', desc: r[2] || '',
+        price: price > 0 ? price : null,
+        img: r[4] || '',
+        available: !(av === 'no' || av === 'n' || av === 'false' || av === '0' || av === 'agotado'),
+      });
+    }
+    return items;
+  }
+  function resenasFromSheet(rows) {
+    const out = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r || !r[0]) continue;
+      out.push({ name: r[0], stars: parseInt(r[1], 10) || 5, text: r[2] || '', date: r[3] || '', img: r[4] || '' });
+    }
+    return out;
+  }
+
+  async function fetchData() {
+    let src = null;
+    if (SHEET_URL) {
+      try { const r = await fetch(SHEET_URL, { cache: 'no-store' }); if (r.ok) src = (await r.json()); } catch (e) { src = null; }
+    }
+    if (!src && CSV_URL) {
+      try {
+        const r = await fetch(CSV_URL, { cache: 'no-store' });
+        if (r.ok) src = { items: itemsFromSheet(parseCSV(await r.text())) };
+      } catch (e) { src = null; }
+    }
+    if (!src || !src.items || !src.items.length) {
+      try {
+        const r = await fetch('negocio.json?t=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) src = await r.json();
+      } catch (e) { src = null; }
+    }
+    if (!src || !src.items || !src.items.length) return;
+    src.items = src.items.filter((i) => i && i.name);
+    DATA = src;
+
+    if (REVIEWS_SHEET_URL) {
+      try {
+        const r = await fetch(REVIEWS_SHEET_URL, { cache: 'no-store' });
+        if (r.ok) RESENAS = resenasFromSheet(parseCSV(await r.text()));
+      } catch (e) { /* se queda el respaldo */ }
+    }
+    if (!RESENAS.length) {
+      try {
+        const r = await fetch('resenas.json?t=' + Date.now(), { cache: 'no-store' });
+        if (r.ok) RESENAS = await r.json();
+      } catch (e) { /* sin reseñas */ }
+    }
+
+    renderMenu();
+    populateServices();
+    renderReviews();
+    stateBanner();
+  }
+
+  fetchData();
+  setInterval(fetchData, REFRESH_MS);
+
+  /* ---------------- asistente "El Peluco" ---------------- */
+  const chat = $('#chat');
+  const chatBody = $('#chatBody');
+  const chatQs = $('#chatQs');
+  const chatIn = $('#chatIn');
+  const chatTxt = $('#chatTxt');
+  let opened = false;
+
+  const scrollChat = () => { chatBody.scrollTop = chatBody.scrollHeight; };
+  function bot(text) { const m = document.createElement('div'); m.className = 'c-msg c-bot'; m.textContent = text; chatBody.appendChild(m); scrollChat(); }
+  function me(text) { const m = document.createElement('div'); m.className = 'c-msg c-me'; m.textContent = text; chatBody.appendChild(m); scrollChat(); }
+  function chips(arr) {
+    chatQs.innerHTML = '';
+    arr.forEach((c) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'q-chip';
+      b.textContent = c.label;
+      b.addEventListener('click', () => { me(c.label); c.run(); });
+      chatQs.appendChild(b);
+    });
+  }
+  const go = (sel) => { const el = document.querySelector(sel); if (el) el.scrollIntoView({ behavior: 'smooth' }); };
+
+  const horario = () => (DATA && DATA.horario) || 'Lunes a Sábado · 9:00 a 21:00';
+  const direccion = () => (DATA && DATA.direccion) || 'Av. Morelos 210, Centro';
+
+  const TOP = () => {
+    bot('Estos son nuestros servicios más pedidos:');
+    const items = (DATA && DATA.items || []).slice(0, 4);
+    items.forEach((i) => bot('• ' + i.name + ' · ' + (DATA.showPrices !== false && i.price ? money(i.price) : 'a consultar')));
+    chips([{ label: 'Ver todo y agendar ✂', run: () => go('#servicios') }]);
+  };
+
+  function askCita() {
+    bot('Con gusto. Elige el servicio abajo y te dejo el formulario de 15 segundos:');
+    chips([{ label: 'Ir a agendar 📅', run: () => go('#cita') }]);
+  }
+
+  $('#cbFab').addEventListener('click', () => {
+    chat.hidden = !chat.hidden;
+    $('#cbFab').classList.remove('busy');
+    if (!chat.hidden && !opened) {
+      opened = true;
+      setTimeout(() => {
+        bot('¿Qué te acomodamos hoy? Te respondo con datos reales del local 👇');
+        chips([
+          { label: 'Quiero agendar', run: askCita },
+          { label: '¿Horario?', run: () => bot('Atendemos ' + horario() + ' ☀️') },
+          { label: '¿Dirección?', run: () => bot('Estamos en ' + direccion() + '. Toca el botón verde para guiarte. 🧭') },
+          { label: 'Servicios y precios', run: TOP },
+        ]);
+        setTimeout(() => chatTxt.focus(), 300);
+      }, 200);
+    }
+  });
+
+  chatIn.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = chatTxt.value.trim();
+    if (!v) return;
+    me(v);
+    chatTxt.value = '';
+    const t = v.toLowerCase();
+    if (t.includes('cita') || t.includes('agendar') || t.includes('turno')) { askCita(); return; }
+    if (t.includes('horario') || t.includes('abren') || t.includes('cierran')) { bot('Atendemos ' + horario() + '. Sin cita también llegas, pero mejor nos avisas 😉'); return; }
+    if (t.includes('donde') || t.includes('direc') || t.includes('ubic')) { bot('Estamos en ' + direccion() + '. Abre maps con el botón verde de WhatsApp. 🧭'); return; }
+    if (t.includes('precio') || t.includes('cuanto') || t.includes('cuesta') || t.includes('servicios')) { TOP(); return; }
+    if (t.includes('rese') || t.includes('google') || t.includes('opina')) { bot('Tenemos ★ ' + (DATA && DATA.estrellas ? DATA.estrellas : '4.9') + ' en Google, con ' + (DATA && DATA.reseñas_count ? DATA.reseñas_count : RESENAS.length) + ' reseñas. Las ves abajo 👇'); go('#resenas'); return; }
+    let reply = 'No lo tengo claro 🤔 Prueba con "agendar", "horario", "precios" o "reseñas".';
+    if (t.includes('hola') || t.includes('buenas')) reply = '¡Hola! ¿Qué te acomodamos hoy?';
+    bot(reply);
+    setTimeout(() => {
+      chips([
+        { label: 'Quiero agendar', run: askCita },
+        { label: '¿Horario?', run: () => bot('Atendemos ' + horario() + ' ☀️') },
+        { label: 'Servicios y precios', run: TOP },
+      ]);
+    }, 150);
+  });
+
+  /* ---------------- arranque del hero ---------------- */
+  const heroImg = $('.hero-img');
+  if (document.documentElement.classList.contains('js')) setTimeout(() => heroImg.classList.add('on'), 150);
+
+  window.__sucursalReady = true;
+})();
