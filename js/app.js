@@ -26,7 +26,7 @@
     if (f) f.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola! vi su página y quiero agendar.');
   }
   const SHEET_URL = '';
-  const CSV_URL = '';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/1Wg9htlRxihL6kd05ryrunMsLE85raNl0D10301xRUho/export?format=csv';
   const REVIEWS_SHEET_URL = '';
   const REFRESH_MS = 30000;
 
