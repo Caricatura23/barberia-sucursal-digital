@@ -153,6 +153,7 @@ section[id] { scroll-margin-top: 74px; }
 .foot b { font-family: var(--disp); text-transform: uppercase; letter-spacing: .5px; }
 .foot p { font-size: .84rem; opacity: .75; }
 .foot-note { max-width: 560px; }
+.ver { border: 1px solid rgba(201,163,92,.45); color: var(--gold); font-size: .72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; letter-spacing: 1px; }
 
 /* ---------- whatsapp flotante ---------- */
 .wa-float { position: fixed; right: 18px; bottom: 18px; z-index: 70; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: #25d366; color: #fff; box-shadow: 0 12px 26px -10px rgba(37,211,102,.7); transition: transform .2s; }

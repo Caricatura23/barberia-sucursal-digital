@@ -448,6 +448,8 @@
     renderSlots();
     const ci = $('#contactInfo');
     if (ci) ci.textContent = (DATA && DATA.horario) ? DATA.horario.toUpperCase() : 'LUN A SÁB · 9:00–21:00';
+    const v = $('#ver');
+    if (v) v.textContent = 'v8';
   }
 
   fetchData();
