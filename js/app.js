@@ -5,7 +5,26 @@
   const $$ = (s, c) => Array.prototype.slice.call((c || document).querySelectorAll(s));
   const money = (n) => '$' + Math.round(n).toLocaleString('es-MX');
 
-  const WA = '5215512345678';
+  let WA = '5215512345678';
+  let WA_LIST = ['5215512345678'];
+  let EMAILS = [];
+
+  function abrirWhatsApp(msg) {
+    const txt = encodeURIComponent(msg);
+    WA_LIST.forEach((num, i) => {
+      setTimeout(() => window.open('https://wa.me/' + num + '?text=' + txt, '_blank', 'noopener'), i * 600);
+    });
+  }
+
+  function applyConfig(cfg) {
+    if (!cfg) return;
+    const nums = [];
+    ['wa', 'wa1', 'wa2', 'wa3'].forEach((k) => { const v = String(cfg[k] || '').replace(/[^0-9]/g, ''); if (v && v.length >= 10) nums.push(v); });
+    if (nums.length) { WA = nums[0]; WA_LIST = nums; }
+    EMAILS = ['email', 'email1', 'email2'].map((k) => String(cfg[k] || '').trim()).filter(Boolean);
+    const f = $('#waFloat');
+    if (f) f.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola! vi su página y quiero agendar.');
+  }
   const SHEET_URL = '';
   const CSV_URL = '';
   const REVIEWS_SHEET_URL = '';
@@ -121,7 +140,7 @@
             } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }
           }
           const msg = 'Hola, quiero agendar para el ' + day + ' a las ' + timeL + ' (quedan ' + left + ' lugares). ¿Me confirman?';
-          window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+          abrirWhatsApp(msg);
         });
       }
       slotGrid.appendChild(el);
@@ -210,7 +229,7 @@
       '\nHora: ' + hour +
       (name ? '\nNombre: ' + name : '') +
       '\n¿Me confirman disponibilidad?';
-    window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    abrirWhatsApp(msg);
     toast('Cita registrada — confirma en WhatsApp');
   });
 
@@ -257,11 +276,21 @@
     if (cur !== '' || row.length) { row.push(cur.trim()); rows.push(row); }
     return rows;
   }
-  function itemsFromSheet(rows) {
+  function parseCarta(rows) {
     const items = [];
+    const config = {};
+    let inConfig = false;
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r || !r[0]) continue;
+      const head = String(r[0]).trim().toUpperCase();
+      if (head === 'CONFIG') { inConfig = true; continue; }
+      if (inConfig) {
+        const k = String(r[0]).trim().toLowerCase();
+        const v = (r[1] || '').trim();
+        if (k && v) config[k] = v;
+        continue;
+      }
       const price = Number((r[3] || '').replace(/[^0-9.]/g, ''));
       const av = String(r[5] || 'si').trim().toLowerCase();
       items.push({
@@ -271,7 +300,7 @@
         available: !(av === 'no' || av === 'n' || av === 'false' || av === '0' || av === 'agotado'),
       });
     }
-    return items;
+    return { items, config };
   }
   function resenasFromSheet(rows) {
     const out = [];
@@ -291,16 +320,17 @@
     if (!src && CSV_URL) {
       try {
         const r = await fetch(CSV_URL, { cache: 'no-store' });
-        if (r.ok) src = { items: itemsFromSheet(parseCSV(await r.text())) };
+        if (r.ok) src = parseCarta(parseCSV(await r.text()));
       } catch (e) { src = null; }
     }
     if (!src || !src.items || !src.items.length) {
       try {
         const r = await fetch('negocio.json?t=' + Date.now(), { cache: 'no-store' });
-        if (r.ok) src = await r.json();
+        if (r.ok) { src = await r.json(); if (src.config) applyConfig(src.config); }
       } catch (e) { src = null; }
     }
     if (!src || !src.items || !src.items.length) return;
+    if (src.config) applyConfig(src.config);
     src.items = src.items.filter((i) => i && i.name);
     DATA = src;
 

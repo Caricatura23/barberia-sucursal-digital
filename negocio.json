@@ -4,6 +4,10 @@
   "horario": "Lunes a Sábado · 9:00 a 21:00",
   "tel": "5215512345678",
   "direccion": "Av. Morelos 210, Centro",
+  "config": {
+    "wa": "5215512345678",
+    "email": "cita@barbamaestra.com"
+  },
   "estrellas": "4.9",
   "reseñas_count": "128",
   "showPrices": true,
