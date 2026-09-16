@@ -9,6 +9,7 @@
   let WA_LIST = ['5215512345678'];
   let EMAILS = [];
   let AGENDA_MANUAL = false;
+  let AGENDA_HOJA = false;
 
   function abrirWhatsApp(msg) {
     const txt = encodeURIComponent(msg);
@@ -24,6 +25,7 @@
     if (nums.length) { WA = nums[0]; WA_LIST = nums; }
     EMAILS = ['email', 'email1', 'email2'].map((k) => String(cfg[k] || '').trim()).filter(Boolean);
     AGENDA_MANUAL = String(cfg.agenda || '').toLowerCase() === 'manual';
+    AGENDA_HOJA = String(cfg.agenda || '').toLowerCase() === 'hoja';
     const f = $('#waFloat');
     if (f) f.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola! vi su página y quiero agendar.');
   }
@@ -106,7 +108,7 @@
         if (cand.getDay() === Number(s.weekday)) {
           const parts = String(s.time).split(':').map(Number);
           const dt = new Date(cand); dt.setHours(parts[0] || 0, parts[1] || 0, 0, 0);
-          if (dt.getTime() > now.getTime()) list.push({ dt, cap: s.cap == null ? 3 : Number(s.cap), fijo: s.left == null ? null : Number(s.left), time: String(s.time) });
+          if (dt.getTime() > now.getTime()) list.push({ dt, cap: s.cap == null ? 3 : Number(s.cap), fijo: s.left == null ? null : Number(s.left), time: String(s.time), sfull: !!s.full });
           break;
         }
       }
@@ -122,18 +124,18 @@
       } catch (e) { /* sin base: se usan los datos de la hoja */ }
     }
 
-    list.forEach(({ dt, cap, fijo, time }) => {
+    list.forEach(({ dt, cap, fijo, time, sfull }) => {
       const key = fmtFecha(dt) + '|' + time;
       const usados = reservados[key] || 0;
       const left = supa ? cap - usados : ((fijo == null ? cap - usados : fijo));
-      const full = !AGENDA_MANUAL && left <= 0;
+      const full = AGENDA_MANUAL ? false : (AGENDA_HOJA ? sfull : (left <= 0));
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'slot' + (full ? ' off' : '');
       const day = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
       const timeL = dt.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
       el.innerHTML = '<b class="slot-day">' + day + '</b><span class="slot-time">' + timeL + '</span>' +
-        '<small class="slot-note">' + (full ? 'Lleno — ya no hay' : (AGENDA_MANUAL ? 'Toca para agendar' : (left === 1 ? 'Queda 1 lugar · toca' : 'Quedan ' + left + ' · toca'))) + '</small>';
+        '<small class="slot-note">' + (full ? 'Lleno — ya no hay' : (AGENDA_MANUAL || AGENDA_HOJA ? 'Disponible · toca' : (left === 1 ? 'Queda 1 lugar · toca' : 'Quedan ' + left + ' · toca'))) + '</small>';
       if (!full) {
         el.addEventListener('click', async () => {
           if (supa) {
@@ -143,7 +145,7 @@
               renderSlots();
             } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }
           }
-          const msg = 'Hola, quiero agendar para el ' + day + ' a las ' + timeL + (AGENDA_MANUAL ? ' (gestionada por el negocio)' : ' (quedan ' + left + ' lugares)') + '. ¿Me confirman?';
+          const msg = 'Hola, quiero agendar para el ' + day + ' a las ' + timeL + (AGENDA_MANUAL || AGENDA_HOJA ? ' (solicitud)' : ' (quedan ' + left + ' lugares)') + '. ¿Me confirman?';
           abrirWhatsApp(msg);
         });
       }
@@ -301,11 +303,15 @@
       if (bloque === 'slots') {
         const dayTxt = String(r[0]).trim();
         const timeTxt = String(r[1] || '').trim();
+        const capRaw = String(r[2] || '').trim().toLowerCase();
         const isNum = /^\d+$/.test(dayTxt);
         if (isNum && /^(no|cerrado)$/i.test(timeTxt)) { cerrado[Number(dayTxt)] = true; continue; }
         if (isNum && /^\d{1,2}:\d{2}$/.test(timeTxt)) {
-          const cap = String(r[2] || '').replace(/[^0-9]/g, '');
-          slots.push({ weekday: Number(dayTxt), time: timeTxt, cap: cap === '' ? 1 : Number(cap) });
+          let cap = null, full = false;
+          if (/^\d+$/.test(capRaw)) cap = Number(capRaw);
+          else if (/^(no|lleno|ocupado|agotado)$/.test(capRaw)) full = true;
+          else if (!capRaw || /^(si|libre|disponible)$/.test(capRaw)) cap = 1;
+          slots.push({ weekday: Number(dayTxt), time: timeTxt, cap, full });
         }
         continue;
       }
