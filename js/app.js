@@ -236,6 +236,27 @@
   }
 
   /* ---------------- agenda por WhatsApp ---------------- */
+  function horasDeDia(diaSel) {
+    const slots = (DATA && DATA.slots) || [];
+    const cerrado = (DATA && DATA.cerrado) || {};
+    if (!diaSel) return [];
+    const d = new Date(diaSel + 'T00:00:00');
+    if (isNaN(d.getTime())) return [];
+    const diaHoja = (d.getDay() + 6) % 7 + 1;
+    if (cerrado[diaHoja]) return [];
+    return slots
+      .filter((s) => Number(s.weekday) === diaHoja)
+      .map((s) => String(s.time))
+      .sort();
+  }
+  function poblarHoras() {
+    const sel = $('#bkHour');
+    const dias = horasDeDia($('#bkDay').value);
+    sel.innerHTML = dias.length
+      ? dias.map((h) => '<option>' + h + '</option>').join('')
+      : '<option disabled selected>Elige un día con servicio…</option>';
+  }
+
   function populateServices() {
     const sel = $('#bkService');
     const items = (DATA && DATA.items) || [];
@@ -248,6 +269,7 @@
     const tm = new Date();
     tm.setDate(tm.getDate() + 1);
     bkDay.min = tm.toISOString().split('T')[0];
+    bkDay.addEventListener('change', poblarHoras);
   }
 
   $('#bkSend').addEventListener('click', async () => {
@@ -420,9 +442,12 @@
 
     renderMenu();
     populateServices();
+    poblarHoras();
     renderReviews();
     stateBanner();
     renderSlots();
+    const ci = $('#contactInfo');
+    if (ci) ci.textContent = (DATA && DATA.horario) ? DATA.horario.toUpperCase() : 'LUN A SÁB · 9:00–21:00';
   }
 
   fetchData();
