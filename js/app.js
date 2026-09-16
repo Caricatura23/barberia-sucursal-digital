@@ -92,10 +92,12 @@
   async function renderSlots() {
     slotGrid.innerHTML = '';
     const slots = ((DATA && DATA.slots) || []);
+    const cerrado = (DATA && DATA.cerrado) || {};
     if (!slots.length) { slotGrid.innerHTML = ''; return; }
     const now = new Date();
     const list = [];
     slots.forEach((s) => {
+      if (cerrado[Number(s.weekday)]) return;
       const dayBase = new Date(now); dayBase.setHours(0, 0, 0, 0);
       for (let k = 0; k < 14; k++) {
         const cand = new Date(dayBase.getTime() + k * 86400000);
@@ -280,6 +282,7 @@
     const items = [];
     const config = {};
     const slots = [];
+    const cerrado = {};
     let bloque = 'carta'; // 'carta' | 'config' | 'slots'
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
@@ -294,10 +297,13 @@
         continue;
       }
       if (bloque === 'slots') {
-        const weekday = parseInt(String(r[0]).trim(), 10);
-        const time = String(r[1] || '').trim();
-        if (!isNaN(weekday) && /^\d{1,2}:\d{2}$/.test(time)) {
-          slots.push({ weekday, time, cap: r[2] ? Number(String(r[2]).replace(/[^0-9]/g, '')) || null : null });
+        const dayTxt = String(r[0]).trim();
+        const timeTxt = String(r[1] || '').trim();
+        const isNum = /^\d+$/.test(dayTxt);
+        if (isNum && /^(no|cerrado)$/i.test(timeTxt)) { cerrado[Number(dayTxt)] = true; continue; }
+        if (isNum && /^\d{1,2}:\d{2}$/.test(timeTxt)) {
+          const cap = String(r[2] || '').replace(/[^0-9]/g, '');
+          slots.push({ weekday: Number(dayTxt), time: timeTxt, cap: cap === '' ? 1 : Number(cap) });
         }
         continue;
       }
@@ -310,7 +316,7 @@
         available: !(av === 'no' || av === 'n' || av === 'false' || av === '0' || av === 'agotado'),
       });
     }
-    return { items, config, slots };
+    return { items, config, slots, cerrado };
   }
   function resenasFromSheet(rows) {
     const out = [];
@@ -348,7 +354,7 @@
     if (!DATA.slots || !DATA.slots.length) {
       try {
         const fb = await (await fetch('negocio.json?t=' + Date.now(), { cache: 'no-store' })).json();
-        if (fb && fb.slots && fb.slots.length) DATA.slots = fb.slots;
+        if (fb && fb.slots && fb.slots.length) { DATA.slots = fb.slots; DATA.cerrado = DATA.cerrado || {}; }
       } catch (e) { /* sin respaldo */ }
     }
 
