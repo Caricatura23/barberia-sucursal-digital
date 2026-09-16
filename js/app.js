@@ -134,7 +134,7 @@
         el.addEventListener('click', async () => {
           if (supa) {
             try {
-              const { error } = await supa.from('reservas').insert([{ nombre: '', servicio: '', fecha: fmtFecha(dt), hora: time, estado: 'pendiente' }]);
+              const { error } = await supa.from('reservas').insert([{ nombre: '', servicio: '', fecha: fmtFecha(dt), hora: time, estado: 'pendiente', notify: EMAILS[0] || '' }]);
               if (error) { toast('No se pudo reservar — inténtalo otra vez.'); return; }
               renderSlots();
             } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }
@@ -218,7 +218,7 @@
     if (!day) { toast('Falta el día de tu cita'); return; }
     if (supa) {
       try {
-        const { error } = await supa.from('reservas').insert([{ nombre: name, servicio: sv, fecha: day, hora: hour, estado: 'pendiente' }]);
+        const { error } = await supa.from('reservas').insert([{ nombre: name, servicio: sv, fecha: day, hora: hour, estado: 'pendiente', notify: EMAILS[0] || '' }]);
         if (error) { toast('No se pudo registrar — inténtalo otra vez.'); return; }
         renderSlots();
       } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }

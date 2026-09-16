@@ -8,6 +8,7 @@ create table public.reservas (
   fecha text not null,             -- formato YYYY-MM-DD
   hora text not null,              -- formato HH:MM
   estado text not null default 'pendiente', -- 'pendiente' | 'cancelada'
+  notify text not null default '', -- correo del dueño (aviso al reservarse)
   creado_en timestamptz not null default now()
 );
 
@@ -18,6 +19,9 @@ create policy "ver_reservas" on public.reservas for select using (true);
 
 -- la página puede registrar una reserva con el toque
 create policy "crear_reservas" on public.reservas for insert with check (true);
+
+-- para proyectos ya existentes: solo agrega la columna del aviso
+-- alter table public.reservas add column if not exists notify text not null default '';
 
 -- Uso diario del dueño:
 --   cancelar:  update public.reservas set estado='cancelada' where id = <id>;
