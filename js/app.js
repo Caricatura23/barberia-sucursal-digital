@@ -14,6 +14,11 @@
   let DATA = null;
   let RESENAS = [];
 
+  const supa = (window.SUPABASE && window.SUPABASE.url && window.SUPABASE.anonKey && window.supabase)
+    ? window.supabase.createClient(window.SUPABASE.url, window.SUPABASE.anonKey)
+    : null;
+  if (supa) console.log('[sucursal] Supabase conectado');
+
   /* ---------------- helpers ---------------- */
   function toast(msg) {
     const t = $('#toast');
@@ -48,7 +53,82 @@
     revealEls.forEach((el) => el.classList.add('in'));
   }
 
-  /* ---------------- estado de banner ---------------- */
+  /* ---------------- prueba social arriba (hero) ---------------- */
+  const trustBar = $('#trustBar');
+  function renderTrust() {
+    const est = (DATA && DATA.estrellas) || '4.9';
+    const n = (DATA && DATA.reseñas_count) || RESENAS.length || '128';
+    const abierto = !DATA || DATA.open !== false;
+    const hor = (DATA && DATA.horario) || 'Lunes a Sábado · 9:00 a 21:00';
+    trustBar.innerHTML =
+      '<span class="trust-stars">★ ' + est + '</span><span>' + n + ' reseñas en Google</span><span class="dot">·</span>' +
+      '<span>' + (abierto ? 'Abiertos ahora' : 'Cerramos hoy') + '</span><span class="dot">·</span><span>' + hor + '</span>';
+  }
+  renderTrust();
+
+  /* ---------------- agenda de 1 toque (escasez real) ---------------- */
+  const slotGrid = $('#slotGrid');
+  const fmtFecha = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+  async function renderSlots() {
+    slotGrid.innerHTML = '';
+    const slots = ((DATA && DATA.slots) || []);
+    if (!slots.length) { slotGrid.innerHTML = ''; return; }
+    const now = new Date();
+    const list = [];
+    slots.forEach((s) => {
+      const dayBase = new Date(now); dayBase.setHours(0, 0, 0, 0);
+      for (let k = 0; k < 14; k++) {
+        const cand = new Date(dayBase.getTime() + k * 86400000);
+        if (cand.getDay() === Number(s.weekday)) {
+          const parts = String(s.time).split(':').map(Number);
+          const dt = new Date(cand); dt.setHours(parts[0] || 0, parts[1] || 0, 0, 0);
+          if (dt.getTime() > now.getTime()) list.push({ dt, cap: s.cap == null ? 3 : Number(s.cap), fijo: s.left == null ? null : Number(s.left), time: String(s.time) });
+          break;
+        }
+      }
+    });
+    list.sort((a, b) => a.dt - b.dt);
+    list.length = Math.min(list.length, 6);
+
+    const reservados = {};
+    if (supa) {
+      try {
+        const { data, error } = await supa.from('reservas').select('fecha,hora,estado').not('estado', 'eq', 'cancelada');
+        if (!error && data) data.forEach((r) => { const k = r.fecha + '|' + r.hora; reservados[k] = (reservados[k] || 0) + 1; });
+      } catch (e) { /* sin base: se usan los datos de la hoja */ }
+    }
+
+    list.forEach(({ dt, cap, fijo, time }) => {
+      const key = fmtFecha(dt) + '|' + time;
+      const usados = reservados[key] || 0;
+      const left = supa ? cap - usados : ((fijo == null ? cap - usados : fijo));
+      const full = left <= 0;
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'slot' + (full ? ' off' : '');
+      const day = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
+      const timeL = dt.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+      el.innerHTML = '<b class="slot-day">' + day + '</b><span class="slot-time">' + timeL + '</span>' +
+        '<small class="slot-note">' + (full ? 'Lleno — ya no hay' : (left === 1 ? 'Queda 1 lugar · toca' : 'Quedan ' + left + ' · toca')) + '</small>';
+      if (!full) {
+        el.addEventListener('click', async () => {
+          if (supa) {
+            try {
+              const { error } = await supa.from('reservas').insert([{ nombre: '', servicio: '', fecha: fmtFecha(dt), hora: time, estado: 'pendiente' }]);
+              if (error) { toast('No se pudo reservar — inténtalo otra vez.'); return; }
+              renderSlots();
+            } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }
+          }
+          const msg = 'Hola, quiero agendar para el ' + day + ' a las ' + timeL + ' (quedan ' + left + ' lugares). ¿Me confirman?';
+          window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+        });
+      }
+      slotGrid.appendChild(el);
+    });
+  }
+
+  /* ---------------- banner texto estado ---------------- */
   const banner = $('#stateBanner');
   function stateBanner() {
     if (!DATA) return;
@@ -109,7 +189,7 @@
     bkDay.min = tm.toISOString().split('T')[0];
   }
 
-  $('#bkSend').addEventListener('click', () => {
+  $('#bkSend').addEventListener('click', async () => {
     if (DATA && DATA.open === false) { toast('Cerramos por hoy — elige un día siguiente.'); return; }
     const sv = $('#bkService').value;
     const day = $('#bkDay').value;
@@ -117,6 +197,13 @@
     const name = $('#bkName').value.trim();
     if (!sv) { toast('Primero elige tu servicio 🙂'); return; }
     if (!day) { toast('Falta el día de tu cita'); return; }
+    if (supa) {
+      try {
+        const { error } = await supa.from('reservas').insert([{ nombre: name, servicio: sv, fecha: day, hora: hour, estado: 'pendiente' }]);
+        if (error) { toast('No se pudo registrar — inténtalo otra vez.'); return; }
+        renderSlots();
+      } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }
+    }
     const neg = (DATA && DATA.nombre) || 'Barba Maestra';
     const msg = 'Hola, quiero agendar en ' + neg + ':\nServicio: ' + sv +
       '\nDía: ' + day.split('-').reverse().join('/') +
@@ -124,7 +211,7 @@
       (name ? '\nNombre: ' + name : '') +
       '\n¿Me confirman disponibilidad?';
     window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-    toast('Cita lista — confirma en WhatsApp');
+    toast('Cita registrada — confirma en WhatsApp');
   });
 
   /* ---------------- reseñas ---------------- */

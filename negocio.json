@@ -8,6 +8,17 @@
   "reseñas_count": "128",
   "showPrices": true,
   "open": true,
+  "slots": [
+    { "weekday": 1, "time": "10:00", "left": 2, "cap": 2 },
+    { "weekday": 1, "time": "12:00", "left": 1 },
+    { "weekday": 2, "time": "11:00", "left": 3 },
+    { "weekday": 2, "time": "17:00", "left": 1, "cap": 2 },
+    { "weekday": 3, "time": "10:00", "left": 0 },
+    { "weekday": 4, "time": "13:00", "left": 2 },
+    { "weekday": 4, "time": "19:00", "left": 2 },
+    { "weekday": 5, "time": "16:00", "left": 1, "cap": 2 },
+    { "weekday": 6, "time": "11:00", "left": 2 }
+  ],
   "items": [
     {
       "name": "Corte clásico",
