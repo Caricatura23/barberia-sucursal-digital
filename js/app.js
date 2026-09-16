@@ -103,19 +103,21 @@
     const cerrado = (DATA && DATA.cerrado) || {};
     if (!slots.length) { slotGrid.innerHTML = ''; return; }
     const now = new Date();
+    const dayBase = new Date(now); dayBase.setHours(0, 0, 0, 0);
+    const hoyHoja = (now.getDay() + 6) % 7 + 1; // 1=lunes … 7=domingo, igual que la hoja
+    const diasLaborales = slots.map((s) => Number(s.weekday));
+    const ultimoDia = Math.max.apply(null, diasLaborales);
+    const mismaSemana = hoyHoja <= ultimoDia ? 0 : 7; // 0 = quedan días en esta semana, 7 = se pasa a la siguiente
     const list = [];
     slots.forEach((s) => {
       if (cerrado[Number(s.weekday)]) return;
-      const dayBase = new Date(now); dayBase.setHours(0, 0, 0, 0);
-      for (let k = 0; k < 14; k++) {
-        const cand = new Date(dayBase.getTime() + k * 86400000);
-        if (cand.getDay() === Number(s.weekday)) {
-          const parts = String(s.time).split(':').map(Number);
-          const dt = new Date(cand); dt.setHours(parts[0] || 0, parts[1] || 0, 0, 0);
-          if (dt.getTime() > now.getTime()) list.push({ dt, cap: s.cap == null ? 3 : Number(s.cap), fijo: s.left == null ? null : Number(s.left), time: String(s.time), sfull: !!s.full });
-          break;
-        }
-      }
+      const sWd = Number(s.weekday);
+      let diff = sWd - hoyHoja + mismaSemana;
+      if (diff < 0 || diff > 13) return; // día ya pasado esta semana, no se muestra
+      const cand = new Date(dayBase.getTime() + diff * 86400000);
+      const parts = String(s.time).split(':').map(Number);
+      const dt = new Date(cand); dt.setHours(parts[0] || 0, parts[1] || 0, 0, 0);
+      if (dt.getTime() > now.getTime()) list.push({ dt, cap: s.cap == null ? 3 : Number(s.cap), fijo: s.left == null ? null : Number(s.left), time: String(s.time), sfull: !!s.full });
     });
     list.sort((a, b) => a.dt - b.dt);
     list.length = Math.min(list.length, 6);
