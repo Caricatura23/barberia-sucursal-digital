@@ -379,7 +379,7 @@
     }
     if (!src && CSV_URL) {
       try {
-        const r = await fetch(CSV_URL, { cache: 'no-store' });
+        const r = await fetch(CSV_URL + '?t=' + Date.now(), { cache: 'no-store' });
         if (r.ok) src = parseCarta(parseCSV(await r.text()));
       } catch (e) { src = null; }
     }
@@ -422,6 +422,7 @@
     populateServices();
     renderReviews();
     stateBanner();
+    renderSlots();
   }
 
   fetchData();
