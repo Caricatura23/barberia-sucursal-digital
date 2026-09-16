@@ -82,6 +82,36 @@
 
   /* ---------------- prueba social arriba (hero) ---------------- */
   const trustBar = $('#trustBar');
+
+  const NOMBRES_DIA = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  function horarioDesdeSlots(ds) {
+    const slots = (ds && ds.slots) || [];
+    const cerrado = (ds && ds.cerrado) || {};
+    if (!slots.length) return '';
+    const dias = [...new Set(slots.map((s) => Number(s.weekday)))].filter((d) => !cerrado[d]).sort((a, b) => a - b);
+    if (!dias.length) return '';
+    let diaTxt;
+    if (dias.length === 1) diaTxt = NOMBRES_DIA[dias[0]];
+    else if (dias.length === 7) diaTxt = 'Todos los días';
+    else if (dias[dias.length - 1] - dias[0] + 1 === dias.length) diaTxt = NOMBRES_DIA[dias[0]] + ' a ' + NOMBRES_DIA[dias[dias.length - 1]];
+    else diaTxt = dias.map((d) => NOMBRES_DIA[d]).join(', ');
+    const horas = slots
+      .filter((s) => !cerrado[Number(s.weekday)] && /^\d{1,2}:\d{2}$/.test(String(s.time)))
+      .map((s) => Number(String(s.time).split(':')[0]) * 60 + Number(String(s.time).split(':')[1]));
+    if (!horas.length) return diaTxt;
+    const fmtH = (m) => String(Math.floor(m / 60)) + ':' + String(m % 60).padStart(2, '0');
+    return diaTxt + ' · ' + fmtH(Math.min.apply(null, horas)) + ' a ' + fmtH(Math.max.apply(null, horas));
+  }
+  function aplicarConfigDatos(src) {
+    const c = src && src.config;
+    if (!c) return;
+    ['nombre', 'direccion', 'estrellas', 'reseñas_count'].forEach((k) => {
+      const v = String(c[k] || '').trim();
+      if (v) src[k] = v;
+    });
+    const h = String(c.horario || '').trim();
+    if (h) src.horario = h;
+  }
   function renderTrust() {
     const est = (DATA && DATA.estrellas) || '4.9';
     const n = (DATA && DATA.reseñas_count) || RESENAS.length || '128';
@@ -371,6 +401,9 @@
         if (fb && fb.slots && fb.slots.length) { DATA.slots = fb.slots; DATA.cerrado = DATA.cerrado || {}; }
       } catch (e) { /* sin respaldo */ }
     }
+
+    aplicarConfigDatos(DATA);
+    if (!DATA.horario) DATA.horario = horarioDesdeSlots(DATA) || DATA.horario;
 
     if (REVIEWS_SHEET_URL) {
       try {
