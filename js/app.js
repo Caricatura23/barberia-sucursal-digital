@@ -8,6 +8,7 @@
   let WA = '5215512345678';
   let WA_LIST = ['5215512345678'];
   let EMAILS = [];
+  let AGENDA_MANUAL = false;
 
   function abrirWhatsApp(msg) {
     const txt = encodeURIComponent(msg);
@@ -22,6 +23,7 @@
     ['wa', 'wa1', 'wa2', 'wa3'].forEach((k) => { const v = String(cfg[k] || '').replace(/[^0-9]/g, ''); if (v && v.length >= 10) nums.push(v); });
     if (nums.length) { WA = nums[0]; WA_LIST = nums; }
     EMAILS = ['email', 'email1', 'email2'].map((k) => String(cfg[k] || '').trim()).filter(Boolean);
+    AGENDA_MANUAL = String(cfg.agenda || '').toLowerCase() === 'manual';
     const f = $('#waFloat');
     if (f) f.href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola! vi su página y quiero agendar.');
   }
@@ -124,14 +126,14 @@
       const key = fmtFecha(dt) + '|' + time;
       const usados = reservados[key] || 0;
       const left = supa ? cap - usados : ((fijo == null ? cap - usados : fijo));
-      const full = left <= 0;
+      const full = !AGENDA_MANUAL && left <= 0;
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'slot' + (full ? ' off' : '');
       const day = dt.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' });
       const timeL = dt.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
       el.innerHTML = '<b class="slot-day">' + day + '</b><span class="slot-time">' + timeL + '</span>' +
-        '<small class="slot-note">' + (full ? 'Lleno — ya no hay' : (left === 1 ? 'Queda 1 lugar · toca' : 'Quedan ' + left + ' · toca')) + '</small>';
+        '<small class="slot-note">' + (full ? 'Lleno — ya no hay' : (AGENDA_MANUAL ? 'Toca para agendar' : (left === 1 ? 'Queda 1 lugar · toca' : 'Quedan ' + left + ' · toca'))) + '</small>';
       if (!full) {
         el.addEventListener('click', async () => {
           if (supa) {
@@ -141,7 +143,7 @@
               renderSlots();
             } catch (e) { toast('Sin conexión — confirma directo por WhatsApp.'); }
           }
-          const msg = 'Hola, quiero agendar para el ' + day + ' a las ' + timeL + ' (quedan ' + left + ' lugares). ¿Me confirman?';
+          const msg = 'Hola, quiero agendar para el ' + day + ' a las ' + timeL + (AGENDA_MANUAL ? ' (gestionada por el negocio)' : ' (quedan ' + left + ' lugares)') + '. ¿Me confirman?';
           abrirWhatsApp(msg);
         });
       }
