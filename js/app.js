@@ -279,16 +279,26 @@
   function parseCarta(rows) {
     const items = [];
     const config = {};
-    let inConfig = false;
+    const slots = [];
+    let bloque = 'carta'; // 'carta' | 'config' | 'slots'
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r || !r[0]) continue;
       const head = String(r[0]).trim().toUpperCase();
-      if (head === 'CONFIG') { inConfig = true; continue; }
-      if (inConfig) {
+      if (head === 'CONFIG') { bloque = 'config'; continue; }
+      if (head === 'SLOTS') { bloque = 'slots'; continue; }
+      if (bloque === 'config') {
         const k = String(r[0]).trim().toLowerCase();
         const v = (r[1] || '').trim();
         if (k && v) config[k] = v;
+        continue;
+      }
+      if (bloque === 'slots') {
+        const weekday = parseInt(String(r[0]).trim(), 10);
+        const time = String(r[1] || '').trim();
+        if (!isNaN(weekday) && /^\d{1,2}:\d{2}$/.test(time)) {
+          slots.push({ weekday, time, cap: r[2] ? Number(String(r[2]).replace(/[^0-9]/g, '')) || null : null });
+        }
         continue;
       }
       const price = Number((r[3] || '').replace(/[^0-9.]/g, ''));
@@ -300,7 +310,7 @@
         available: !(av === 'no' || av === 'n' || av === 'false' || av === '0' || av === 'agotado'),
       });
     }
-    return { items, config };
+    return { items, config, slots };
   }
   function resenasFromSheet(rows) {
     const out = [];
@@ -333,6 +343,14 @@
     if (src.config) applyConfig(src.config);
     src.items = src.items.filter((i) => i && i.name);
     DATA = src;
+
+    /* horarios: la hoja manda; si no trae bloque SLOTS, se usan los del respaldo */
+    if (!DATA.slots || !DATA.slots.length) {
+      try {
+        const fb = await (await fetch('negocio.json?t=' + Date.now(), { cache: 'no-store' })).json();
+        if (fb && fb.slots && fb.slots.length) DATA.slots = fb.slots;
+      } catch (e) { /* sin respaldo */ }
+    }
 
     if (REVIEWS_SHEET_URL) {
       try {
